@@ -191,6 +191,37 @@ unusually. Use "Copy as Cypher" to paste the result into Neo4j.
 
 ![The playground: typed instructions on the left, the graph and the flagged steps on the right](docs/playground.jpg)
 
+The playground starts from seven example procedures. They are illustrations I wrote,
+not any company's real instructions:
+
+| Example | The steps it flags |
+|---|---|
+| Software | merging and closing pull requests, posting to a channel |
+| Customer support | refunding a customer, emailing them, closing the ticket |
+| Banking | sending a loan decision, updating the customer record |
+| Hiring | sending rejection emails, booking interviews |
+| Building energy | changing heating and cooling setpoints, switching off ventilation |
+| Grid flexibility | curtailing loads, dispatching a battery to the grid |
+| Carbon reporting | overwriting figures with estimates, submitting a report to a regulator, buying credits |
+
+### Where the question matters now
+
+- **Agents already act in the physical world.** Autonomous control of heating and
+  cooling is in production in thousands of buildings
+  ([TIME](https://time.com/7201501/ai-buildings-energy-efficiency/)). An instruction
+  that lets an agent change setpoints is worth being able to audit.
+- **Regulated work is next.** McKinsey describes banks moving agents into end-to-end
+  processes such as loan origination and identity checks
+  ([McKinsey](https://www.mckinsey.com/featured-insights/mckinsey-explainers/banking-and-ai-when-the-tech-starts-doing-the-work-not-just-assisting-it)).
+- **Human oversight is becoming a legal requirement.** Article 14 of the EU AI Act
+  requires high-risk AI systems to be built so that people can oversee them. The
+  high-risk list includes systems that manage the supply of electricity, gas and
+  heating, and systems used in hiring. "Which steps act with no human approval before
+  them?" is the first thing an oversight review would ask.
+
+Skill Graph does not make a system compliant with anything. It makes that one
+question answerable.
+
 ### The full way
 
 You need Python 3 with `pyyaml` and `jsonschema`, and a Neo4j 5 database.

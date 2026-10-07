@@ -26,6 +26,10 @@ header p { margin: 4px 0 0; color: var(--muted); max-width: 72ch; }
 header a { color: var(--text); }
 .layout { display: grid; grid-template-columns: minmax(280px, 2fr) minmax(0, 3fr); gap: 24px; padding: 24px; align-items: start; }
 .label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); margin: 0 0 8px; }
+.presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.presets button { background: var(--surface); color: var(--text); border: 1px solid var(--border-2); padding: 6px 12px; }
+.presets button:hover { opacity: 1; border-color: var(--text); }
+.presets button[aria-pressed="true"] { background: var(--text); color: var(--surface); border-color: var(--text); }
 textarea { width: 100%; min-height: 340px; resize: vertical; padding: 16px; border: 1px solid var(--border-2); border-radius: var(--radius); background: var(--surface); color: var(--text); font-family: var(--mono); font-size: 14px; line-height: 1.7; }
 textarea:focus { outline: 2px solid var(--text); outline-offset: 1px; }
 .hint { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
@@ -68,9 +72,11 @@ button:hover { opacity: 0.85; }
 </header>
 <div class="layout">
   <section>
+    <div class="label">Start from an example</div>
+    <div class="presets" id="presets"></div>
     <div class="label">Your instructions</div>
     <textarea id="src" spellcheck="false" aria-label="Agent instructions, one step per line"></textarea>
-    <p class="hint">Try it: add the line <b>Wait for my approval</b> above "Merge", and watch the warning clear.</p>
+    <p class="hint">Try it: add the line <b>Wait for my approval</b> above the first orange step, and watch the warning clear. The examples are illustrations, not any company's real procedures.</p>
   </section>
   <section>
     <div id="verdict" class="verdict" aria-live="polite"></div>
@@ -88,18 +94,56 @@ button:hover { opacity: 0.85; }
   </section>
 </div>
 <script>
-const SAMPLE = `Fetch the latest code
+// Illustrative procedures, one per industry. Not taken from any real company.
+const PRESETS = {
+  "Software": `Fetch the latest code
 List the open pull requests
 Run the tests on each one
 Decide which ones are ready
 Merge the ready ones
 Close the stale pull requests
-Post a summary to the team channel`;
+Post a summary to the team channel`,
+  "Customer support": `Read the customer's ticket
+Look up the order history
+Decide whether the complaint is valid
+Refund the customer
+Send an apology email
+Close the ticket`,
+  "Banking": `Read the loan application
+Verify the identity documents
+Look up the credit history
+Decide whether the loan should go ahead
+Send the decision to the customer
+Update the customer record`,
+  "Hiring": `Read the new applications
+Rank the candidates against the job description
+Decide who to reject
+Send the rejection emails
+Book interviews with the top five`,
+  "Building energy": `Read the temperature and occupancy sensors
+Look up the weather forecast
+Decide the cheapest comfortable setpoints
+Adjust the heating and cooling setpoints
+Switch off ventilation in empty zones
+Send a weekly savings report to the owner`,
+  "Grid flexibility": `Read the grid operator's price signal
+Forecast tomorrow's demand
+Decide which loads can be shifted
+Curtail the flexible loads
+Dispatch the battery to the grid
+Send the settlement figures to the grid operator`,
+  "Carbon reporting": `Collect the energy bills and fuel records
+Calculate the emissions for each site
+Decide which figures look wrong
+Overwrite the flagged figures with estimates
+Submit the emissions report to the regulator
+Buy carbon credits to cover the gap`,
+};
 
 // Keyword rules. Order matters only within a group; kind and effect are read separately.
 const APPROVAL = /\b(wait for (my|your|their|human|a human'?s?) (approval|ok|go-ahead|sign-?off)|wait for approval|ask (me|the user|a human|for approval|for confirmation)|confirm with (me|the user|a human)|get (my |human )?(approval|sign-?off)|needs? (my |human )?approval|show (me|the user) .* before|human review|i approve)\b/i;
 const CONDITIONAL = /\b(if|unless|when|only when|in case)\b/i;
-const REMOTE = /\b(merge|push|deploy|publish|release|ship|send|email|post|tweet|reply|pay|refund|charge|transfer|wire|book|order|purchase|buy|close (the |all |any |stale |old )*(prs?|pull requests?|issues?|tickets?)|(create|file) (a |an |the |new )*(issues?|prs?|pull requests?|tickets?)|open (a |an |new )+(issues?|prs?|pull requests?|tickets?)|update (the )?(crm|customer|record|ticket|production|prod)|write to (the )?(database|production|prod))\b/i;
+const REMOTE = /\b(merge|push|deploy|restart|reboot|roll ?back|shut ?down|cancel|adjust|switch (off|on)|turn (off|on)|curtail|dispatch|submit|publish|release|ship|send|email|post|tweet|reply|pay|refund|charge|transfer|wire|book|place (an |the )?order|purchase|buy|close (the |all |any |stale |old )*(prs?|pull requests?|issues?|tickets?)|(create|file) (a |an |the |new )*(issues?|prs?|pull requests?|tickets?)|open (a |an |new )+(issues?|prs?|pull requests?|tickets?)|update (the )?(crm|customer|record|ticket|production|prod)|write to (the )?(database|production|prod))\b/i;
 const DESTRUCTIVE = /\b(delete|remove|drop|wipe|purge|erase|truncate|rm -rf|overwrite)\b/i;
 const GATE = /\b(tests?|build|lint|validate|verify|check|scan|type-?check|dry[- ]run)\b/i;
 const JUDGMENT = /\b(decide|judge|choose|pick|triage|assess|evaluate|determine|prioriti[sz]e|classify|rank|draft|write|summari[sz]e|recommend|plan)\b/i;
@@ -226,9 +270,24 @@ function cypher(steps) {
 const src = document.getElementById("src");
 let steps = [];
 function update() { steps = parse(src.value); verdict(steps); draw(steps); explain(steps); }
-src.value = SAMPLE;
-src.addEventListener("input", update);
+const presetBar = document.getElementById("presets");
+function usePreset(name) {
+  src.value = PRESETS[name];
+  [...presetBar.children].forEach(b => b.setAttribute("aria-pressed", String(b.textContent === name)));
+  update();
+}
+Object.keys(PRESETS).forEach(name => {
+  const b = document.createElement("button");
+  b.type = "button"; b.textContent = name;
+  b.addEventListener("click", () => usePreset(name));
+  presetBar.append(b);
+});
+src.addEventListener("input", () => {
+  [...presetBar.children].forEach(b => b.setAttribute("aria-pressed", "false"));
+  update();
+});
 window.addEventListener("resize", () => draw(steps));
+usePreset("Software");
 document.getElementById("copy").addEventListener("click", async () => {
   const note = document.getElementById("copied");
   try { await navigator.clipboard.writeText(cypher(steps)); note.textContent = "Copied. Paste it into the Neo4j query box and run it."; }
