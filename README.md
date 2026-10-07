@@ -296,17 +296,31 @@ Every node also carries `:SkillGraph`.
 
 ---
 
-## What comes next
+## Build the next thing
 
-- **Find duplicated rules automatically with vector search.** Today the shared rules
-  (the `uses:` links, such as "fetch before reading" in four commands) were marked by
-  hand during the compile. Embedding each step and storing the vectors in Neo4j would
-  find steps that mean the same thing even when they are worded differently, so the
-  graph answers structure and the vectors answer similarity.
-- **Link the graph to real run logs**, so the question moves from what an agent is
-  allowed to do to what it did.
+This was one evening's work on one person's agent, so most of the idea is still open.
+If it is useful to you, take it further. Three things nobody has built:
 
-Neither is built.
+1. **Find duplicated rules automatically with vector search.** Today the shared rules
+   (the `uses:` links, such as "fetch before reading" in four commands) were marked by
+   hand during the compile. Embed each step, store the vectors in Neo4j, and find
+   steps that mean the same thing even when they are worded differently. The graph
+   answers structure, the vectors answer similarity.
+2. **Link the graph to what the agent really did.** Read real run logs, match each
+   action to a step, and change the question from "what is it allowed to do?" to
+   "what did it do?".
+3. **Stop the risky step, not just report it.** Turn a flagged step into a check that
+   runs before the agent acts, so a missing approval blocks the action.
+
+Smaller ways in:
+
+- Write a query for a question you care about and add it to [`queries/`](queries/).
+- Compile the instructions of a different agent (Cursor rules, an `AGENTS.md`, a
+  support bot's runbook) and see whether the schema holds.
+- Teach the playground a word it misses.
+
+Fork it, open an issue, or just tell me what your own agent turned out to be allowed
+to do. The licence is MIT, so you do not need to ask.
 
 ---
 
