@@ -1,0 +1,68 @@
+skill: eval
+source: commands/eval.md
+purpose: Run a repo's eval suite against its baseline and put the scorecard in the pull request.
+inputs:
+  - {name: arguments, type: string}
+steps:
+  - id: resolve-repo
+    kind: script
+    does: Resolve the repo, and the pull request if one was given.
+    tool: gh
+    effect: read
+    uses: resolve-repo
+    in: [arguments]
+    out: [{name: repo, type: string}, {name: pr_number, type: int}]
+    quote: 'Resolve the repo from $ARGUMENTS (a shortname, `owner/repo`, or a PR number in the'
+  - id: worktree
+    kind: script
+    does: Check the pull request out into a worktree.
+    tool: git
+    effect: local
+    uses: verify-in-worktree
+    in: [repo, pr_number]
+    out: [{name: workdir, type: path}]
+    quote: '`git worktree add /tmp/<slug> <branch>`, then symlink `node_modules` only if'
+  - id: check-suite
+    kind: gate
+    does: Stop if the repo has no evals folder.
+    tool: fs
+    effect: read
+    in: [workdir]
+    out: [{name: has_suite, type: bool}]
+    quote: 'If there''s no `evals/` folder, report "No eval coverage in <repo>" and stop. Offer to'
+  - id: run-eval
+    kind: script
+    does: Run the eval suite on the production model, with real model calls.
+    tool: npm
+    effect: spend
+    uses: eval-gate
+    in: [workdir, has_suite]
+    out: [{name: scorecards, type: list}]
+    quote: 'Read `evals/README.md`, then run `npm run eval`. Run it on the production model first.'
+  - id: judge-vs-baseline
+    kind: gate
+    does: Compare each metric with the committed baseline and name what regressed.
+    tool: none
+    effect: read
+    in: [scorecards]
+    out: [{name: verdict, type: string}]
+    quote: '- PASS / FAIL against the baseline, and any metric that regressed'
+  - id: paste-into-pr
+    kind: script
+    conditional: true
+    does: Paste the scorecards into the pull request body.
+    tool: gh
+    effect: remote
+    in: [scorecards, verdict, repo, pr_number]
+    out: [{name: pr_updated, type: bool}]
+    quote: 'For a PR, paste the scorecards into the PR body''s Evals section with `gh pr edit`.'
+  - id: report
+    kind: report
+    does: Report the scorecards verbatim, pass or fail, and every failed case.
+    tool: none
+    effect: read
+    in: [scorecards, verdict]
+    out: []
+    quote: '- each scorecard from `evals/results/*.md`, verbatim'
+notes:
+  - CLAUDE.md allows one eval run per model-facing pull request, in the evening, because the quota is shared with the live app. The command has no step that checks whether a run already happened today.

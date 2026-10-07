@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skill Graph Playground</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* Graphite: one hot accent on neutral grey. The accent marks a step that acts
+   with no human approval before it. Kind is carried by shape, not colour. */
+:root {
+  --bg: #FAFAFA; --surface: #FFFFFF; --surface-2: #F3F4F6;
+  --border: #E5E7EB; --border-2: #D1D5DB;
+  --text: #111827; --muted: #6B7280; --faint: #9CA3AF;
+  --accent: #F2540B; --accent-dim: rgba(242, 84, 11, 0.10);
+  --mono: 'DM Mono', 'Space Mono', ui-monospace, SFMono-Regular, monospace;
+  --disp: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --radius: 4px;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--disp); font-size: 15px; line-height: 1.5; }
+header { padding: 20px 24px 16px; border-bottom: 1px solid var(--border); background: var(--surface); }
+h1 { margin: 0; font-size: 20px; font-weight: 700; }
+header p { margin: 4px 0 0; color: var(--muted); max-width: 72ch; }
+header a { color: var(--text); }
+.layout { display: grid; grid-template-columns: minmax(280px, 2fr) minmax(0, 3fr); gap: 24px; padding: 24px; align-items: start; }
+.label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); margin: 0 0 8px; }
+textarea { width: 100%; min-height: 340px; resize: vertical; padding: 16px; border: 1px solid var(--border-2); border-radius: var(--radius); background: var(--surface); color: var(--text); font-family: var(--mono); font-size: 14px; line-height: 1.7; }
+textarea:focus { outline: 2px solid var(--text); outline-offset: 1px; }
+.hint { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+.verdict { padding: 16px 18px; border-radius: var(--radius); border: 1px solid var(--border-2); background: var(--surface); margin-bottom: 16px; }
+.verdict.bad { border-color: var(--accent); background: var(--accent-dim); }
+.verdict b { font-size: 22px; font-weight: 700; display: block; line-height: 1.25; }
+.verdict span { color: var(--muted); }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
+.scroll { overflow-x: auto; }
+svg { display: block; }
+svg text { font-family: var(--mono); }
+.node rect.box { fill: var(--surface); stroke: var(--border-2); }
+.node.flag rect.box { fill: var(--accent-dim); stroke: var(--accent); stroke-width: 1.5; }
+.node .id { font-size: 12px; fill: var(--text); font-weight: 500; }
+.node .kind { font-size: 9px; fill: var(--muted); letter-spacing: 0.08em; }
+.node .tag { font-size: 9px; fill: var(--accent); letter-spacing: 0.08em; }
+.node { animation: in 0.25s ease-out; }
+@keyframes in { from { opacity: 0; transform: translateY(4px); } }
+@media (prefers-reduced-motion: reduce) { .node { animation: none; } }
+.edge { fill: none; stroke: var(--border-2); stroke-width: 1.2; }
+ol.steps { margin: 0; padding: 0; list-style: none; }
+ol.steps li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 4px 10px; padding: 10px 0; border-top: 1px solid var(--border); }
+ol.steps li:first-child { border-top: 0; padding-top: 0; }
+.n { font-family: var(--mono); font-size: 12px; color: var(--faint); padding-top: 2px; }
+.why { grid-column: 2; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.why.hot { color: var(--accent); }
+mark { background: var(--surface-2); color: inherit; padding: 0 3px; border-radius: 2px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 12px; }
+button { font: inherit; font-family: var(--mono); font-size: 12px; padding: 8px 14px; background: var(--text); color: var(--surface); border: 0; border-radius: var(--radius); cursor: pointer; }
+button:hover { opacity: 0.85; }
+.row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.note { color: var(--muted); font-size: 13px; max-width: 75ch; }
+@media (max-width: 820px) { .layout { grid-template-columns: 1fr; padding: 16px; } textarea { min-height: 220px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Skill Graph Playground</h1>
+  <p>Type the instructions you would give an AI agent, one step per line. The graph builds as you type, and tells you which steps act with no human approval before them. <a href="index.html">See the compiled examples</a>.</p>
+</header>
+<div class="layout">
+  <section>
+    <div class="label">Your instructions</div>
+    <textarea id="src" spellcheck="false" aria-label="Agent instructions, one step per line"></textarea>
+    <p class="hint">Try it: add the line <b>Wait for my approval</b> above "Merge", and watch the warning clear.</p>
+  </section>
+  <section>
+    <div id="verdict" class="verdict" aria-live="polite"></div>
+    <div class="card">
+      <div class="scroll" id="graph"></div>
+      <div class="legend"><span>square = fixed command</span><span>pill = the model decides</span><span>double rule = automatic check</span><span>black bar = human approval</span><span>orange = acts with no approval before it</span></div>
+    </div>
+    <div class="label">How each line was read</div>
+    <div class="card"><ol class="steps" id="steps"></ol></div>
+    <div class="row">
+      <button id="copy" type="button">Copy as Cypher for Neo4j</button>
+      <span class="note" id="copied"></span>
+    </div>
+    <p class="note">This page reads keywords, line by line, in your browser. Nothing is sent anywhere. It is a quick draft, not an audit: it can miss a risky step that is worded unusually, and it assumes the lines run in order. For real instruction files, compile them with a coding agent and the validator in the <a href="https://github.com/atharux/skill-graph">repository</a>, which makes every step quote the line it came from.</p>
+  </section>
+</div>
+<script>
+const SAMPLE = `Fetch the latest code
+List the open pull requests
+Run the tests on each one
+Decide which ones are ready
+Merge the ready ones
+Close the stale pull requests
+Post a summary to the team channel`;
+
+// Keyword rules. Order matters only within a group; kind and effect are read separately.
+const APPROVAL = /\b(wait for (my|your|their|human|a human'?s?) (approval|ok|go-ahead|sign-?off)|wait for approval|ask (me|the user|a human|for approval|for confirmation)|confirm with (me|the user|a human)|get (my |human )?(approval|sign-?off)|needs? (my |human )?approval|show (me|the user) .* before|human review|i approve)\b/i;
+const CONDITIONAL = /\b(if|unless|when|only when|in case)\b/i;
+const REMOTE = /\b(merge|push|deploy|publish|release|ship|send|email|post|tweet|reply|pay|refund|charge|transfer|wire|book|order|purchase|buy|close (the |all |any |stale |old )*(prs?|pull requests?|issues?|tickets?)|(create|file) (a |an |the |new )*(issues?|prs?|pull requests?|tickets?)|open (a |an |new )+(issues?|prs?|pull requests?|tickets?)|update (the )?(crm|customer|record|ticket|production|prod)|write to (the )?(database|production|prod))\b/i;
+const DESTRUCTIVE = /\b(delete|remove|drop|wipe|purge|erase|truncate|rm -rf|overwrite)\b/i;
+const GATE = /\b(tests?|build|lint|validate|verify|check|scan|type-?check|dry[- ]run)\b/i;
+const JUDGMENT = /\b(decide|judge|choose|pick|triage|assess|evaluate|determine|prioriti[sz]e|classify|rank|draft|write|summari[sz]e|recommend|plan)\b/i;
+
+function readLine(raw) {
+  const text = raw.replace(/^\s*(?:[-*+]|\d+[.)])\s+/, "").trim();
+  const hit = re => (text.match(re) || [null])[0];
+  const approval = hit(APPROVAL), remote = hit(REMOTE), destructive = hit(DESTRUCTIVE), gate = hit(GATE), judgment = hit(JUDGMENT);
+  const step = { text, conditional: false, word: null };
+  if (approval) { step.kind = "approval"; step.word = approval; step.conditional = CONDITIONAL.test(text); }
+  else if (remote || destructive) { step.kind = judgment ? "judgment" : "script"; step.word = remote || destructive; }
+  else if (gate) { step.kind = "gate"; step.word = gate; }
+  else if (judgment) { step.kind = "judgment"; step.word = judgment; }
+  else step.kind = "script";
+  step.effect = approval ? "read" : remote ? "remote" : destructive ? "local" : "read";
+  step.destructive = !approval && !!destructive;
+  return step;
+}
+
+function parse(source) {
+  const steps = source.split("\n").map(l => l.trim())
+    .filter(l => l && !l.startsWith("#") && !l.startsWith("```"))
+    .map(readLine);
+  let approved = false, gated = false;
+  steps.forEach((s, i) => {
+    s.n = i + 1;
+    s.acts = s.effect === "remote" || s.destructive;
+    s.flag = s.acts && !approved;
+    s.gated = gated;
+    if (s.kind === "approval" && !s.conditional) approved = true;
+    if (s.kind === "gate") gated = true;
+  });
+  return steps;
+}
+
+const S = (tag, attrs = {}) => {
+  const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const [k, v] of Object.entries(attrs)) k === "text" ? el.textContent = v : el.setAttribute(k, v);
+  return el;
+};
+const W = 172, H = 56, GX = 36, GY = 30;
+
+function draw(steps) {
+  const host = document.getElementById("graph");
+  const perRow = Math.max(1, Math.floor((host.clientWidth + GX) / (W + GX)));
+  const rows = Math.max(1, Math.ceil(steps.length / perRow));
+  const width = Math.min(steps.length || 1, perRow) * (W + GX) - GX + 2, height = rows * (H + GY) - GY + 2;
+  const svg = S("svg", { width, height, viewBox: `0 0 ${width} ${height}`, role: "img", "aria-label": `Graph of ${steps.length} steps` });
+  svg.innerHTML = '<defs><marker id="a" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8z" fill="#9CA3AF"/></marker></defs>';
+  const at = i => ({ x: 1 + (i % perRow) * (W + GX), y: 1 + Math.floor(i / perRow) * (H + GY) });
+  steps.forEach((s, i) => {
+    if (!i) return;
+    const a = at(i - 1), b = at(i);
+    const d = a.y === b.y
+      ? `M${a.x + W} ${a.y + H / 2}L${b.x} ${b.y + H / 2}`
+      : `M${a.x + W / 2} ${a.y + H}V${a.y + H + GY / 2}H${b.x + W / 2}V${b.y}`;
+    svg.append(S("path", { d, class: "edge", "marker-end": "url(#a)" }));
+  });
+  steps.forEach((s, i) => {
+    const { x, y } = at(i);
+    const g = S("g", { class: "node" + (s.flag ? " flag" : ""), transform: `translate(${x},${y})` });
+    g.append(S("rect", { class: "box", width: W, height: H, rx: s.kind === "judgment" ? 28 : 0 }));
+    if (s.kind === "gate") g.append(S("rect", { x: 4, y: 4, width: W - 8, height: H - 8, fill: "none", stroke: "#D1D5DB" }));
+    if (s.kind === "approval") g.append(S("rect", { width: 6, height: H, fill: "#111827" }));
+    const pad = s.kind === "judgment" ? 22 : 14;
+    const label = s.text.length > 19 ? s.text.slice(0, 18) + "…" : s.text;
+    g.append(S("text", { class: "id", x: pad, y: 24, text: label }));
+    const kind = { script: "COMMAND", judgment: "MODEL DECIDES", gate: "CHECK", approval: s.conditional ? "ASKS SOMETIMES" : "HUMAN APPROVAL" }[s.kind];
+    g.append(S("text", { class: "kind", x: pad, y: 41, text: kind }));
+    if (s.acts) g.append(S("text", { class: "tag", x: W - pad, y: 41, "text-anchor": "end", text: s.destructive && s.effect !== "remote" ? "DELETES" : "ACTS" }));
+    const title = S("title", { text: s.text }); g.append(title);
+    svg.append(g);
+  });
+  host.replaceChildren(svg);
+}
+
+function explain(steps) {
+  const list = document.getElementById("steps");
+  list.replaceChildren(...steps.map(s => {
+    const li = document.createElement("li");
+    const n = document.createElement("span"); n.className = "n"; n.textContent = s.n;
+    const t = document.createElement("span");
+    if (s.word) {
+      const i = s.text.toLowerCase().indexOf(s.word.toLowerCase());
+      t.append(s.text.slice(0, i)); const m = document.createElement("mark"); m.textContent = s.text.slice(i, i + s.word.length); t.append(m, s.text.slice(i + s.word.length));
+    } else t.textContent = s.text;
+    const why = document.createElement("span"); why.className = "why" + (s.flag ? " hot" : "");
+    why.textContent =
+      s.kind === "approval" ? (s.conditional ? "asks a human only sometimes, so it does not count as approval" : "a human must approve here; everything after it is covered")
+      : s.flag ? `acts outside ${s.destructive && s.effect !== "remote" ? "(deletes) " : ""}with no human approval before it` + (s.gated ? "; an automatic check runs first" : "; nothing checks it first")
+      : s.acts ? "acts outside, after a human approval"
+      : s.kind === "gate" ? "an automatic check"
+      : s.kind === "judgment" ? "the model decides"
+      : "a fixed command; reads only";
+    li.append(n, t, why);
+    return li;
+  }));
+}
+
+function verdict(steps) {
+  const v = document.getElementById("verdict");
+  const bad = steps.filter(s => s.flag);
+  v.className = "verdict" + (bad.length ? " bad" : "");
+  const b = document.createElement("b"), span = document.createElement("span");
+  if (!steps.length) { b.textContent = "Start typing."; span.textContent = "Each line becomes one step."; }
+  else if (bad.length) {
+    b.textContent = `${bad.length} ${bad.length === 1 ? "step acts" : "steps act"} with no human approval before ${bad.length === 1 ? "it" : "them"}.`;
+    span.textContent = "Step " + bad.map(s => s.n).join(", ") + " of " + steps.length + ".";
+  } else if (steps.some(s => s.acts)) { b.textContent = "Every step that acts has a human approval before it."; span.textContent = steps.length + " steps."; }
+  else { b.textContent = "Nothing here acts outside yet."; span.textContent = steps.length + (steps.length === 1 ? " step, read-only." : " steps, all read-only."); }
+  v.replaceChildren(b, span);
+}
+
+// Same node and relationship names as the repository's loader, so its queries run on the result.
+function cypher(steps) {
+  const q = v => JSON.stringify(v);
+  const lines = [`CREATE (c:SkillGraph:Command {name: "playground", source: "typed in the playground", purpose: "Draft from the playground"})`];
+  steps.forEach(s => lines.push(
+    `CREATE (c)-[:HAS_STEP]->(s${s.n}:SkillGraph:Step {key: "playground/step-${s.n}", id: "step-${s.n}", order: ${s.n}, kind: ${q(s.kind)}, does: ${q(s.text)}, effect: ${q(s.effect)}, conditional: ${s.conditional}, destructive: ${s.destructive}, quote: ${q(s.text)}})`));
+  steps.slice(1).forEach(s => lines.push(`CREATE (s${s.n - 1})-[:THEN]->(s${s.n})`));
+  return lines.join("\n") + ";";
+}
+
+const src = document.getElementById("src");
+let steps = [];
+function update() { steps = parse(src.value); verdict(steps); draw(steps); explain(steps); }
+src.value = SAMPLE;
+src.addEventListener("input", update);
+window.addEventListener("resize", () => draw(steps));
+document.getElementById("copy").addEventListener("click", async () => {
+  const note = document.getElementById("copied");
+  try { await navigator.clipboard.writeText(cypher(steps)); note.textContent = "Copied. Paste it into the Neo4j query box and run it."; }
+  catch { note.textContent = "Could not reach the clipboard in this browser."; }
+});
+update();
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+# Shared sub-procedures: the same rule, stated separately in more than one command.
+# A step points at one of these with `uses:`.
+- id: resolve-repo
+  does: Work out which GitHub repo the command is about, from gh or from the arguments.
+- id: fetch-before-read
+  does: Run git fetch before reading any repo state, so nothing is judged from a stale clone.
+- id: list-open-prs
+  does: List open pull requests for every repo that has a GitHub remote.
+- id: verify-in-worktree
+  does: Build or test in a separate git worktree, never in the working tree.
+- id: eval-gate
+  does: For a model-facing change, run the repo's eval suite or state that there is none.
+- id: capture-template
+  does: Start a capture entry from publishing/templates/capture-template.md.

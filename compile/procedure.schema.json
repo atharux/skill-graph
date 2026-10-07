@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Compiled procedure",
+  "description": "One prose command compiled into a graph of typed steps. Step order in the file is execution order: a step may only consume values produced above it.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["skill", "source", "purpose", "inputs", "steps"],
+  "properties": {
+    "skill": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "source": { "type": "string", "description": "Path of the prose file this was compiled from, relative to the sources folder passed to the validator." },
+    "purpose": { "type": "string", "minLength": 10 },
+    "inputs": { "type": "array", "items": { "$ref": "#/$defs/value" } },
+    "steps": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/step" } },
+    "notes": {
+      "type": "array",
+      "description": "Ambiguities and inconsistencies the compile had to surface. Findings about the prose, not opinions about the design.",
+      "items": { "type": "string", "minLength": 10 }
+    }
+  },
+  "$defs": {
+    "value": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "type"],
+      "properties": {
+        "name": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+        "type": { "enum": ["string", "int", "bool", "path", "list", "object"] }
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "does", "tool", "effect", "in", "out", "quote"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+        "kind": {
+          "description": "script: a fixed command or file operation. judgment: the model decides. gate: an automated check that can stop the run. approval: a human must answer. report: output handed to the human.",
+          "enum": ["script", "judgment", "gate", "approval", "report"]
+        },
+        "does": { "type": "string", "minLength": 10 },
+        "tool": { "enum": ["gh", "git", "npm", "python", "curl", "fs", "agent", "artifact", "none"] },
+        "effect": {
+          "description": "read: reads only. local: writes on this machine. spend: an outside call that costs money or quota. remote: changes something outside this machine (push, PR, merge, issue, publish).",
+          "enum": ["read", "local", "spend", "remote"]
+        },
+        "conditional": { "type": "boolean", "description": "True when the prose says the step only happens in some runs." },
+        "destructive": { "type": "boolean", "description": "True when the step deletes something." },
+        "uses": { "type": "string", "description": "Id of a shared sub-procedure in subprocedures.yaml." },
+        "touches": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "mode"],
+            "properties": { "path": { "type": "string" }, "mode": { "enum": ["read", "write"] } }
+          }
+        },
+        "in": { "type": "array", "items": { "type": "string", "pattern": "^[a-z0-9_]+$" } },
+        "out": { "type": "array", "items": { "$ref": "#/$defs/value" } },
+        "after": { "type": "array", "description": "Order-only dependencies, for steps that must wait on another without consuming its output.", "items": { "type": "string" } },
+        "quote": { "type": "string", "minLength": 8, "description": "Verbatim text from one line of the source. The validator rejects the step if the source no longer contains it." }
+      }
+    }
+  }
+}

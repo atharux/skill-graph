@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skill Graph</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* Graphite: one hot accent on neutral grey. The accent marks where you act —
+   here, a step a governance query flagged. Step kind is carried by shape and
+   label, never by colour. Tokens mirror orbit/src/index.css. */
+:root {
+  --bg: #FAFAFA; --surface: #FFFFFF; --surface-2: #F3F4F6;
+  --border: #E5E7EB; --border-2: #D1D5DB;
+  --text: #111827; --muted: #6B7280; --faint: #9CA3AF;
+  --accent: #F2540B; --accent-dim: rgba(242, 84, 11, 0.10);
+  --mono: 'DM Mono', 'Space Mono', ui-monospace, SFMono-Regular, monospace;
+  --disp: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --radius: 4px;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--disp); font-size: 14px; line-height: 1.5; }
+header { padding: 20px 24px 16px; border-bottom: 1px solid var(--border); background: var(--surface); }
+h1 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+header p { margin: 4px 0 0; color: var(--muted); max-width: 70ch; }
+.meta { font-family: var(--mono); font-size: 11px; color: var(--faint); margin-top: 8px; }
+.layout { display: grid; grid-template-columns: 300px minmax(0, 1fr); min-height: calc(100vh - 100px); }
+nav { border-right: 1px solid var(--border); background: var(--surface); padding: 16px 0; overflow-y: auto; }
+.label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); padding: 0 16px; margin: 16px 0 6px; }
+.label:first-child { margin-top: 0; }
+nav button { display: flex; justify-content: space-between; gap: 8px; width: 100%; text-align: left; background: none; border: 0; border-left: 2px solid transparent; padding: 7px 16px 7px 14px; font: inherit; color: var(--text); cursor: pointer; }
+nav button:hover { background: var(--surface-2); }
+nav button.on { border-left-color: var(--text); background: var(--surface-2); font-weight: 500; }
+nav button .n { font-family: var(--mono); font-size: 11px; color: var(--muted); flex-shrink: 0; }
+nav button .n.hot { color: var(--accent); }
+nav button.skill { font-family: var(--mono); font-size: 12px; }
+main { padding: 24px; min-width: 0; }
+h2 { margin: 0 0 4px; font-size: 18px; font-weight: 700; }
+.sub { color: var(--muted); margin: 0 0 16px; max-width: 75ch; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
+pre { margin: 0; font-family: var(--mono); font-size: 12px; white-space: pre-wrap; color: var(--text); }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th { text-align: left; font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); font-weight: 400; padding: 0 12px 8px 0; white-space: nowrap; }
+td { padding: 8px 12px 8px 0; border-top: 1px solid var(--border); vertical-align: top; }
+td.m { font-family: var(--mono); font-size: 12px; white-space: nowrap; }
+tr.go { cursor: pointer; }
+tr.go:hover td { background: var(--surface-2); }
+.empty { color: var(--muted); }
+svg { display: block; }
+svg text { font-family: var(--mono); }
+.node { cursor: pointer; }
+.node rect.box { fill: var(--surface); stroke: var(--border-2); stroke-width: 1; }
+.node.flag rect.box { fill: var(--accent-dim); stroke: var(--accent); stroke-width: 1.5; }
+.node.sel rect.box { stroke: var(--text); stroke-width: 2; }
+.node .id { font-size: 12px; fill: var(--text); font-weight: 500; }
+.node .kind { font-size: 9px; fill: var(--muted); letter-spacing: 0.08em; }
+.node .tag { font-size: 9px; fill: var(--accent); letter-spacing: 0.08em; }
+.node.input rect.box { fill: var(--surface-2); stroke-dasharray: 3 3; }
+.edge { fill: none; stroke: var(--border-2); stroke-width: 1.2; }
+.edge.order { stroke-dasharray: 4 4; }
+.edge.lit { stroke: var(--text); stroke-width: 1.6; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 12px; }
+dl { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 6px 12px; margin: 0; }
+dt { font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); padding-top: 3px; }
+dd { margin: 0; }
+dd.q { font-family: var(--mono); font-size: 12px; background: var(--surface-2); padding: 6px 8px; border-radius: var(--radius); }
+ul.notes { margin: 0; padding-left: 18px; }
+ul.notes li { margin-bottom: 6px; }
+@media (max-width: 760px) {
+  .layout { grid-template-columns: 1fr; }
+  nav { border-right: 0; border-bottom: 1px solid var(--border); max-height: 40vh; }
+  main { padding: 16px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Skill Graph</h1>
+  <p>Written agent instructions, compiled into step graphs in Neo4j. Once an instruction is a graph, "what can it do without asking?" is a query. <a href="playground.html" style="color:inherit">Try it with your own instructions</a>.</p>
+  <div class="meta" id="meta"></div>
+</header>
+<div class="layout">
+  <nav id="nav"></nav>
+  <main id="main"></main>
+</div>
+<script src="data.js"></script>
+<script>
+const D = window.SKILLGRAPH;
+const $ = (tag, attrs = {}, ...kids) => {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) k === "text" ? el.textContent = v : el.setAttribute(k, v);
+  kids.forEach(k => el.append(k));
+  return el;
+};
+const S = (tag, attrs = {}) => {
+  const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const [k, v] of Object.entries(attrs)) k === "text" ? el.textContent = v : el.setAttribute(k, v);
+  return el;
+};
+
+// A step is flagged when a query about missing controls returned it.
+const FLAGGING = { "01-remote-without-approval": "step", "02-judgment-straight-to-remote": "remote_step", "06-destructive-without-approval": "step" };
+const flagged = new Map();
+D.queries.forEach(q => {
+  const col = FLAGGING[q.id];
+  if (col) q.rows.forEach(r => {
+    const key = r.skill + "/" + r[col];
+    flagged.set(key, [...(flagged.get(key) || []), q.id]);
+  });
+});
+const flagsIn = skill => D.steps.filter(s => s.skill === skill && flagged.has(s.key)).length;
+
+let view = { type: "query", id: D.queries[0].id, step: null };
+const go = v => { view = v; render(); };
+
+function renderNav() {
+  const nav = document.getElementById("nav");
+  nav.replaceChildren($("div", { class: "label", text: "Questions" }));
+  D.queries.forEach(q => {
+    const b = $("button", view.type === "query" && view.id === q.id ? { class: "on" } : {},
+      $("span", { text: q.question.split("?")[0] + "?" }), $("span", { class: "n", text: q.rows.length }));
+    b.onclick = () => go({ type: "query", id: q.id });
+    nav.append(b);
+  });
+  nav.append($("div", { class: "label", text: "Skills" }));
+  D.skills.forEach(s => {
+    const n = flagsIn(s.name);
+    const b = $("button", { class: "skill" + (view.type === "skill" && view.id === s.name ? " on" : "") },
+      $("span", { text: s.name }), $("span", { class: "n" + (n ? " hot" : ""), text: n ? n + " flagged" : "" }));
+    b.onclick = () => go({ type: "skill", id: s.name, step: null });
+    nav.append(b);
+  });
+}
+
+function renderQuery(main, q) {
+  main.append($("h2", { text: q.question.split("?")[0] + "?" }));
+  const rest = q.question.split("?").slice(1).join("?").trim();
+  main.append($("p", { class: "sub", text: (rest ? rest + " " : "") + q.rows.length + (q.rows.length === 1 ? " row" : " rows") + " returned by Neo4j." }));
+  main.append($("div", { class: "card" }, $("pre", { text: q.cypher })));
+  const card = $("div", { class: "card scroll" });
+  if (!q.rows.length) { card.append($("div", { class: "empty", text: "No rows. Nothing matches." })); main.append(card); return; }
+  const cols = Object.keys(q.rows[0]);
+  const table = $("table", {}, $("tr", {}, ...cols.map(c => $("th", { text: c.replace(/_/g, " ") }))));
+  q.rows.forEach(r => {
+    const stepCol = ["step", "remote_step", "judgment"].find(c => r[c]);
+    const tr = $("tr", r.skill ? { class: "go", title: "Open this in the skill graph" } : {});
+    cols.forEach(c => {
+      const v = r[c];
+      const text = Array.isArray(v) ? (v.length ? v.join(", ") : "none") : String(v);
+      tr.append($("td", { class: c === "does" || c === "rule" ? "" : "m", text }));
+    });
+    if (r.skill) tr.onclick = () => go({ type: "skill", id: r.skill, step: stepCol ? r.skill + "/" + r[stepCol] : null });
+    table.append(tr);
+  });
+  card.append(table);
+  main.append(card);
+}
+
+const W = 164, H = 56, GX = 40, GY = 18;
+
+function renderSkill(main, skill) {
+  main.append($("h2", { text: "/" + skill.name }), $("p", { class: "sub", text: skill.purpose }));
+  const steps = D.steps.filter(s => s.skill === skill.name);
+  const inputs = D.inputs.filter(i => i.skill === skill.name);
+  const nodes = [...inputs.map(i => ({ key: i.key, id: i.name, kind: "input", input: true })), ...steps];
+  const keys = new Set(nodes.map(n => n.key));
+  const edges = D.edges.filter(e => keys.has(e.source) && keys.has(e.target));
+
+  // Layer = longest path from a node with nothing upstream.
+  const layer = {};
+  const depth = k => layer[k] ?? (layer[k] = Math.max(-1, ...edges.filter(e => e.target === k).map(e => depth(e.source))) + 1);
+  nodes.forEach(n => depth(n.key));
+  const cols = [];
+  nodes.forEach(n => (cols[layer[n.key]] ||= []).push(n));
+  const tall = Math.max(...cols.map(c => c.length));
+  const pos = {};
+  cols.forEach((col, x) => col.forEach((n, y) => {
+    pos[n.key] = { x: 12 + x * (W + GX), y: 12 + y * (H + GY) + (tall - col.length) * (H + GY) / 2 };
+  }));
+  const width = 24 + cols.length * W + (cols.length - 1) * GX, height = 24 + tall * H + (tall - 1) * GY;
+
+  const svg = S("svg", { width, height, viewBox: `0 0 ${width} ${height}`, role: "img", "aria-label": "Step graph for " + skill.name });
+  svg.append(S("defs")); svg.firstChild.innerHTML = '<marker id="a" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8z" fill="#9CA3AF"/></marker>';
+  const seen = new Set();
+  edges.forEach(e => {
+    const pair = e.source + ">" + e.target;
+    if (seen.has(pair)) return; seen.add(pair);
+    const a = pos[e.source], b = pos[e.target];
+    const x1 = a.x + W, y1 = a.y + H / 2, x2 = b.x, y2 = b.y + H / 2, mx = (x1 + x2) / 2;
+    const values = edges.filter(x => x.source === e.source && x.target === e.target && x.name).map(x => `${x.name}: ${x.type}`);
+    const lit = view.step && (e.source === view.step || e.target === view.step);
+    const p = S("path", { d: `M${x1} ${y1}C${mx} ${y1} ${mx} ${y2} ${x2} ${y2}`, class: "edge" + (e.rel === "THEN" ? " order" : "") + (lit ? " lit" : ""), "marker-end": "url(#a)" });
+    p.append(S("title", { text: values.length ? values.join(", ") : "order only" }));
+    svg.append(p);
+  });
+  nodes.forEach(n => {
+    const { x, y } = pos[n.key];
+    const cls = ["node", n.input ? "input" : "", flagged.has(n.key) ? "flag" : "", view.step === n.key ? "sel" : ""].join(" ");
+    const g = S("g", { class: cls, transform: `translate(${x},${y})`, tabindex: 0 });
+    // Shape carries the kind: judgment is a pill, script is square, gate is double-ruled, approval has a bar.
+    g.append(S("rect", { class: "box", width: W, height: H, rx: n.kind === "judgment" ? 28 : n.kind === "report" ? 10 : 0 }));
+    if (n.kind === "gate") g.append(S("rect", { x: 4, y: 4, width: W - 8, height: H - 8, fill: "none", stroke: "#D1D5DB" }));
+    if (n.kind === "approval") g.append(S("rect", { width: 6, height: H, fill: "#111827" }));
+    const pad = n.kind === "judgment" ? 22 : 14;
+    g.append(S("text", { class: "id", x: pad, y: 24, text: n.id.length > 18 ? n.id.slice(0, 17) + "…" : n.id }));
+    g.append(S("text", { class: "kind", x: pad, y: 41, text: (n.kind === "approval" ? "HUMAN APPROVAL" : n.kind.toUpperCase()) + (n.conditional ? " · SOMETIMES" : "") }));
+    if (n.effect === "remote" || n.destructive) g.append(S("text", { class: "tag", x: W - pad, y: 41, "text-anchor": "end", text: n.destructive ? "DELETES" : "REMOTE" }));
+    if (!n.input) {
+      g.onclick = () => go({ ...view, step: n.key });
+      g.onkeydown = ev => { if (ev.key === "Enter") go({ ...view, step: n.key }); };
+    }
+    svg.append(g);
+  });
+  const card = $("div", { class: "card" }, $("div", { class: "scroll" }, svg));
+  card.append($("div", { class: "legend" },
+    ...["square = script", "pill = model judgment", "double rule = automated gate", "black bar = human approval", "dashed arrow = order only", "orange = flagged by a query"].map(t => $("span", { text: t }))));
+  main.append(card);
+  // Wide procedures scroll sideways; bring the selected step into view.
+  svg.querySelector(".node.sel")?.scrollIntoView({ block: "nearest", inline: "center" });
+
+  const step = steps.find(s => s.key === view.step);
+  if (step) {
+    const dl = $("dl");
+    const row = (k, v, cls) => dl.append($("dt", { text: k }), $("dd", cls ? { class: cls, text: v } : { text: v }));
+    row("step", step.id);
+    row("does", step.does);
+    row("kind", step.kind + (step.conditional ? " (only in some runs)" : ""));
+    row("tool / effect", step.tool + " / " + step.effect + (step.destructive ? " / deletes" : ""));
+    if (step.outputs.length) row("produces", step.outputs.join(", "));
+    if (step.uses) row("shared rule", step.uses);
+    row("source", `${skill.source}, line ${step.line}`);
+    row("prose", step.quote, "q");
+    (flagged.get(step.key) || []).forEach(id => row("flagged by", D.queries.find(q => q.id === id).question.split("?")[0] + "?"));
+    main.append($("div", { class: "card" }, dl));
+  } else {
+    main.append($("p", { class: "empty", text: "Select a step to see what it does and the line of prose it was compiled from." }));
+  }
+  if (skill.notes.length) {
+    main.append($("div", { class: "label", style: "padding:0", text: "What the compile surfaced" }),
+      $("div", { class: "card" }, $("ul", { class: "notes" }, ...skill.notes.map(n => $("li", { text: n })))));
+  }
+}
+
+function render() {
+  renderNav();
+  const main = document.getElementById("main");
+  main.replaceChildren();
+  if (view.type === "query") renderQuery(main, D.queries.find(q => q.id === view.id));
+  else renderSkill(main, D.skills.find(s => s.name === view.id));
+}
+document.getElementById("meta").textContent =
+  `${D.skills.length} skills · ${D.steps.length} steps · ${D.edges.length} edges · read from ${new URL(D.source.url).host} (${D.source.database})`;
+render();
+</script>
+</body>
+</html>

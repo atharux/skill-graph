@@ -1,0 +1,60 @@
+skill: plan-project
+source: commands/plan-project.md
+purpose: Turn a feature or scope into ordered GitHub issues, without writing code.
+inputs:
+  - {name: arguments, type: string}
+steps:
+  - id: resolve-repo
+    kind: script
+    does: Detect the target repo.
+    tool: gh
+    effect: read
+    uses: resolve-repo
+    in: [arguments]
+    out: [{name: repo, type: string}]
+    quote: 'gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null'
+  - id: read-state
+    kind: script
+    does: Read the repo's CLAUDE.md and the relevant source files.
+    tool: fs
+    effect: read
+    in: [repo]
+    out: [{name: repo_state, type: object}]
+    quote: 'Read the repo CLAUDE.md and relevant source files to understand current state'
+  - id: clarify
+    kind: approval
+    conditional: true
+    does: Ask one clarifying question if the scope is ambiguous.
+    tool: none
+    effect: read
+    in: [repo_state, arguments]
+    out: [{name: scope, type: string}]
+    quote: 'Ask ONE clarifying question if the scope is genuinely ambiguous — otherwise proceed'
+  - id: draft-plan
+    kind: judgment
+    does: Draft milestones and issues ordered by dependency.
+    tool: none
+    effect: read
+    in: [repo_state, scope]
+    out: [{name: plan, type: list}]
+    quote: '- Issues ordered by dependency (earlier issues unblock later ones)'
+  - id: create-issues
+    kind: script
+    does: Create the issues on GitHub.
+    tool: gh
+    effect: remote
+    in: [plan, repo]
+    out: [{name: issue_numbers, type: list}]
+    quote: 'Create the issues on GitHub:'
+  - id: report
+    kind: report
+    does: Report a table of the issues created.
+    tool: none
+    effect: read
+    in: [issue_numbers, plan]
+    out: []
+    quote: 'Report a table: issue number | title | milestone | labels'
+notes:
+  - The issues are created straight from the draft. No step shows the plan to a human first.
+  - The prose pins the model as claude-opus-4-8 by name.
+  - The repo is read from the local clone with no git fetch.

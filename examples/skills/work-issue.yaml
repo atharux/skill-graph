@@ -1,0 +1,100 @@
+skill: work-issue
+source: commands/work-issue.md
+purpose: Take one GitHub issue from reading it to an open pull request.
+inputs:
+  - {name: arguments, type: string}
+steps:
+  - id: resolve-repo
+    kind: script
+    does: Detect the target repo and split the issue number off the arguments.
+    tool: gh
+    effect: read
+    uses: resolve-repo
+    in: [arguments]
+    out: [{name: repo, type: string}, {name: issue_number, type: int}]
+    quote: 'gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null'
+  - id: read-issue
+    kind: script
+    does: Read the issue and its acceptance criteria.
+    tool: gh
+    effect: read
+    in: [repo, issue_number]
+    out: [{name: issue, type: object}]
+    quote: 'gh issue view <issue-number> --repo $REPO'
+  - id: clarify-scope
+    kind: approval
+    conditional: true
+    does: Ask one question if the acceptance criteria are unclear.
+    tool: none
+    effect: read
+    in: [issue]
+    out: [{name: acceptance_criteria, type: list}]
+    quote: 'If anything is unclear, ask ONE question before touching code.'
+  - id: locate-clone
+    kind: script
+    does: Find the local directory whose origin matches the repo.
+    tool: git
+    effect: read
+    in: [repo]
+    out: [{name: local_dir, type: path}]
+    quote: 'git -C <local-dir> remote get-url origin'
+  - id: create-branch
+    kind: script
+    does: Create the issue branch in the local clone.
+    tool: git
+    effect: local
+    in: [local_dir, issue_number, issue]
+    out: [{name: branch, type: string}]
+    quote: 'git -C <local-dir> checkout -b issue-<number>-<slug>'
+  - id: implement
+    kind: judgment
+    does: Write the change, staying inside the acceptance criteria.
+    tool: fs
+    effect: local
+    in: [acceptance_criteria, branch, local_dir]
+    out: [{name: diff, type: object}]
+    quote: 'Implement — stay within the acceptance criteria. No refactoring outside scope.'
+  - id: build-gate
+    kind: gate
+    does: Build after every file change and fix errors before continuing.
+    tool: npm
+    effect: local
+    in: [diff]
+    out: [{name: build_ok, type: bool}]
+    quote: 'Build-verify after every file change. Fix errors before continuing.'
+  - id: eval-gate
+    kind: gate
+    does: If the diff is model-facing, run the eval suite or record that there is none.
+    tool: npm
+    effect: spend
+    uses: eval-gate
+    in: [diff]
+    out: [{name: evals_section, type: string}]
+    quote: 'Eval gate. If the diff touches anything model-facing (a prompt, a model string, the AI'
+  - id: commit
+    kind: script
+    does: Commit with a message that references the issue.
+    tool: git
+    effect: local
+    in: [diff, build_ok, issue_number]
+    out: [{name: commit, type: string}]
+    quote: 'git commit -m "brief description (#<number>)"'
+  - id: open-pr
+    kind: script
+    does: Push the branch and open the pull request.
+    tool: gh
+    effect: remote
+    in: [commit, repo, branch, evals_section]
+    out: [{name: pr_url, type: string}]
+    quote: 'Push and open a PR:'
+  - id: report
+    kind: report
+    does: Report the PR URL, the files changed and what was done.
+    tool: none
+    effect: read
+    in: [pr_url, diff]
+    out: []
+    quote: 'Report: PR URL, files changed, what was done.'
+notes:
+  - The command checks out a new branch in the working clone, while CLAUDE.md says never to checkout in his repo and to use a worktree. The prose does not say which rule wins.
+  - There is no git fetch before the branch is created, so it starts from whatever the local clone holds.

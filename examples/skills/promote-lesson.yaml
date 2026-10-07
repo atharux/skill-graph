@@ -1,0 +1,47 @@
+skill: promote-lesson
+source: commands/promote-lesson.md
+purpose: Turn the most teachable recent capture into a numbered lesson draft.
+inputs: []
+steps:
+  - id: read-captures
+    kind: script
+    does: Read the capture entries from the last 14 days.
+    tool: fs
+    effect: read
+    touches: [{path: 'publishing/capture/YYYY-MM-DD.md', mode: read}]
+    in: []
+    out: [{name: captures, type: list}]
+    quote: 'Read all files in publishing/capture/ from the last 14 days.'
+  - id: pick-moment
+    kind: judgment
+    does: Pick the single most teachable moment.
+    tool: none
+    effect: read
+    in: [captures]
+    out: [{name: moment, type: string}]
+    quote: 'Identify the single most teachable moment — something a reader'
+  - id: draft
+    kind: judgment
+    does: Draft the lesson from the lesson template, numbered after the existing ones.
+    tool: fs
+    effect: read
+    in: [moment]
+    out: [{name: draft, type: string}]
+    quote: 'Draft a lesson using the template at publishing/templates/lesson-template.md.'
+  - id: approve
+    kind: approval
+    does: Show the draft and wait for approval before saving.
+    tool: none
+    effect: read
+    in: [draft]
+    out: [{name: approved, type: bool}]
+    quote: 'Show me the draft before saving. Wait for my approval.'
+  - id: save
+    kind: script
+    does: Save the lesson under the next sequential number.
+    tool: fs
+    effect: local
+    touches: [{path: 'publishing/lessons/', mode: write}]
+    in: [approved, draft]
+    out: [{name: lesson_path, type: path}]
+    quote: 'Number it sequentially based on existing files in publishing/lessons/.'

@@ -1,0 +1,83 @@
+skill: babysit-prs
+source: commands/babysit-prs.md
+purpose: Drive every open pull request across the portfolio to merged or closed.
+inputs: []
+steps:
+  - id: fetch
+    kind: script
+    does: Fetch every repo before judging any pull request.
+    tool: git
+    effect: read
+    uses: fetch-before-read
+    in: []
+    out: [{name: refs_fresh, type: bool}]
+    quote: '`git fetch --all -q` first. Never judge a PR from a stale local ref.'
+  - id: list-prs
+    kind: script
+    does: List the open pull requests in every repo with a GitHub remote.
+    tool: gh
+    effect: read
+    uses: list-open-prs
+    in: [refs_fresh]
+    out: [{name: prs, type: list}]
+    quote: 'gh pr list --state open --json number,title,createdAt,headRefName,mergeable,mergeStateStatus,isDraft'
+  - id: pr-detail
+    kind: script
+    does: For each pull request, get commits ahead, files changed and CI state.
+    tool: gh
+    effect: read
+    in: [prs]
+    out: [{name: pr_facts, type: list}]
+    quote: 'For each PR also get: commits ahead of base, files changed, and whether CI exists and passed.'
+  - id: triage
+    kind: judgment
+    does: Give every pull request exactly one verdict.
+    tool: none
+    effect: read
+    in: [pr_facts]
+    out: [{name: verdicts, type: list}]
+    quote: 'Triage — assign every PR exactly one verdict'
+  - id: build-in-worktree
+    kind: gate
+    does: Build each unverified pull request in a worktree.
+    tool: npm
+    effect: local
+    uses: verify-in-worktree
+    in: [verdicts]
+    out: [{name: build_results, type: list}]
+    quote: 'git worktree add /tmp/<slug> <branch>'
+  - id: merge
+    kind: script
+    does: Squash-merge everything that is mergeable and built, without asking.
+    tool: gh
+    effect: remote
+    in: [verdicts, build_results]
+    out: [{name: merged, type: list}]
+    quote: 'Merge everything in MERGE NOW and NEEDS BUILD-that-passed, without asking — merging a green PR'
+  - id: close
+    kind: script
+    does: Close superseded and unwanted pull requests with a one-line reason.
+    tool: gh
+    effect: remote
+    in: [verdicts]
+    out: [{name: closed, type: list}]
+    quote: '| CLOSE | scope no longer wanted | close with a one-line reason |'
+  - id: flag-unshipped
+    kind: judgment
+    does: Flag merges that do not ship on their own (edge functions, migrations, secrets).
+    tool: none
+    effect: read
+    in: [merged]
+    out: [{name: followups, type: list}]
+    quote: 'Flag separately any PR whose merge does not actually ship the change (edge functions, migrations,'
+  - id: report
+    kind: report
+    does: Report merged, closed, blocked and needs-you, with the count still open.
+    tool: none
+    effect: read
+    in: [merged, closed, verdicts, followups]
+    out: []
+    quote: 'End with the count still open and the age of the oldest. If that number did not go down,'
+notes:
+  - Merging without asking is stated as the intent. The build gate is the only control between triage and a merge.
+  - Closing a pull request has no gate at all. It follows directly from the model's own verdict.

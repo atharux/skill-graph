@@ -1,0 +1,33 @@
+skill: new-capture
+source: commands/new-capture.md
+purpose: Open an empty capture entry for today.
+inputs: []
+steps:
+  - id: load-template
+    kind: script
+    does: Load the capture template.
+    tool: fs
+    effect: read
+    uses: capture-template
+    in: []
+    out: [{name: template, type: string}]
+    quote: 'Pre-fill the template from publishing/templates/capture-template.md.'
+  - id: create
+    kind: script
+    does: Create today's capture file from the template.
+    tool: fs
+    effect: local
+    touches: [{path: 'publishing/capture/YYYY-MM-DD.md', mode: write}]
+    in: [template]
+    out: [{name: capture_path, type: path}]
+    quote: 'Create publishing/capture/YYYY-MM-DD.md using today''s date.'
+  - id: report
+    kind: report
+    does: Confirm the file path.
+    tool: none
+    effect: read
+    in: [capture_path]
+    out: []
+    quote: 'Confirm the file path when done.'
+notes:
+  - new-capture and log-session both write publishing/capture/YYYY-MM-DD.md. Neither says what to do when today's file already exists.

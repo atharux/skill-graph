@@ -1,0 +1,61 @@
+skill: memory-check
+source: commands/memory-check.md
+purpose: Lint the memory store, fix what is malformed, and spot-check what it claims.
+inputs: []
+steps:
+  - id: run-linter
+    kind: script
+    does: Run the memory validation script.
+    tool: python
+    effect: read
+    touches: [{path: 'auto-memory/', mode: read}]
+    in: []
+    out: [{name: lint, type: object}]
+    quote: 'python3 .claude/scripts/validate-memory.py'
+  - id: fix-errors
+    kind: script
+    does: Fix every error the linter reports.
+    tool: fs
+    effect: local
+    touches: [{path: 'auto-memory/', mode: write}]
+    in: [lint]
+    out: [{name: fixed, type: list}]
+    quote: '**ERROR — always fix.** A malformed or unindexed memory actively misleads a future session:'
+  - id: judge-warnings
+    kind: judgment
+    does: Decide which warnings are real, and convert relative dates to absolute ones.
+    tool: fs
+    effect: local
+    touches: [{path: 'auto-memory/', mode: write}]
+    in: [lint]
+    out: [{name: warning_changes, type: list}]
+    quote: '**WARN — judgement.** Relative dates are the ones that matter: "currently blocked", "recently'
+  - id: spot-check
+    kind: gate
+    does: Check time-sensitive claims against the repos and files they describe.
+    tool: git
+    effect: read
+    uses: fetch-before-read
+    in: [fixed, warning_changes]
+    out: [{name: wrong, type: list}]
+    quote: 'The linter checks shape, not truth. Spot-check anything time-sensitive against reality before'
+  - id: delete-wrong
+    kind: script
+    destructive: true
+    does: Delete memories that turned out to be wrong.
+    tool: fs
+    effect: local
+    touches: [{path: 'auto-memory/', mode: write}]
+    in: [wrong]
+    out: [{name: deleted, type: list}]
+    quote: 'file:line citation. Memory is a point-in-time observation. Delete what turned out to be wrong'
+  - id: report
+    kind: report
+    does: Report what changed and what was deliberately left.
+    tool: none
+    effect: read
+    in: [fixed, warning_changes, deleted]
+    out: []
+    quote: 'Report what you changed and what you deliberately left. If the store is clean, say so in one'
+notes:
+  - Memories are deleted on the model's own spot-check. No human sees the list before the files go.

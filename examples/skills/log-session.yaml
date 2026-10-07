@@ -1,0 +1,41 @@
+skill: log-session
+source: commands/log-session.md
+purpose: Record what this session built and decided as a dated capture entry.
+inputs: []
+steps:
+  - id: review-session
+    kind: judgment
+    does: Review what was actually built and decided in the session.
+    tool: none
+    effect: read
+    in: []
+    out: [{name: decisions, type: list}]
+    quote: 'Review everything we built or decided in this session.'
+  - id: load-template
+    kind: script
+    does: Load the capture template.
+    tool: fs
+    effect: read
+    uses: capture-template
+    in: []
+    out: [{name: template, type: string}]
+    quote: 'Use the template at publishing/templates/capture-template.md exactly.'
+  - id: write-capture
+    kind: script
+    does: Write the capture entry for today.
+    tool: fs
+    effect: local
+    touches: [{path: 'publishing/capture/YYYY-MM-DD.md', mode: write}]
+    in: [decisions, template]
+    out: [{name: capture_path, type: path}]
+    quote: 'Write a structured capture entry to publishing/capture/YYYY-MM-DD.md'
+  - id: report
+    kind: report
+    does: Confirm the saved path.
+    tool: none
+    effect: read
+    in: [capture_path]
+    out: []
+    quote: 'Save the file when done and confirm the path.'
+notes:
+  - log-session and new-capture both write publishing/capture/YYYY-MM-DD.md. Neither says what to do when today's file already exists.

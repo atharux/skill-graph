@@ -1,0 +1,5 @@
+# The author's own compiled commands and exports. Not part of the public repo.
+private/
+build/
+__pycache__/
+.DS_Store
