@@ -296,6 +296,20 @@ Every node also carries `:SkillGraph`.
 
 ---
 
+## What comes next
+
+- **Find duplicated rules automatically with vector search.** Today the shared rules
+  (the `uses:` links, such as "fetch before reading" in four commands) were marked by
+  hand during the compile. Embedding each step and storing the vectors in Neo4j would
+  find steps that mean the same thing even when they are worded differently, so the
+  graph answers structure and the vectors answer similarity.
+- **Link the graph to real run logs**, so the question moves from what an agent is
+  allowed to do to what it did.
+
+Neither is built.
+
+---
+
 ## Repository layout
 
 ```
