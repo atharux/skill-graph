@@ -15,6 +15,12 @@ them?" becomes a query with an answer.
 Built by [Athar Hafiz](https://atharux.com) for Graphs Gone Wild (Global AI Berlin
 and Neo4j, 23 October 2026).
 
+**Inspired by Zach Blumenfeld's webinar**
+[Reusable skills and procedural memory with graph engineering](https://go.neo4j.com/WBR-EDU-261006-Procedural-knowledge_Registration.html)
+(Neo4j, 6 October 2026). The idea of writing a skill as a graph is his and his
+colleagues'. This repository is what happened when I tried it on my own agent the
+next day.
+
 ---
 
 ## What it found in my own agent
@@ -43,9 +49,13 @@ returns **five** steps. The other ten contain client details and stay private.
 ## Why structure skills as graphs
 
 This project applies an idea from Neo4j's work on the **Agent Instruction Protocol
-(AIP)**, presented in their webinar on reusable skills and procedural memory. This
-section summarises their argument as I understood it from the talk. The claims and
-numbers in it are theirs, taken from their slides. I have not reproduced them.
+(AIP)**, which Zach Blumenfeld, AI Research Engineer at Neo4j, presented in the
+webinar linked above. This section summarises the argument as I understood it from
+his talk. The claims and numbers in it are theirs, taken from the slides. I have not
+reproduced them. For the original, see the paper
+[AIP: A Graph Representation for Learning and Governing Agent Skills](https://tldr.takara.ai/p/2606.04781)
+and Neo4j's post
+[From Agent Memory to Portable Skills](https://neo4j.com/blog/genai/from-agent-memory-to-portable-skills/).
 
 ### The problem with prose skills
 
@@ -270,8 +280,12 @@ docs/                           the viewer and the playground (served by GitHub 
 
 ## Credits
 
-- The idea of compiling prose skills into typed step graphs, and the governance
-  questions it enables, come from Neo4j's Agent Instruction Protocol work.
+- **Zach Blumenfeld** (Neo4j) and his webinar
+  [Reusable skills and procedural memory with graph engineering](https://go.neo4j.com/WBR-EDU-261006-Procedural-knowledge_Registration.html),
+  6 October 2026. The idea of compiling prose skills into typed step graphs, the two
+  governance questions that started this, and the benchmark results quoted above all
+  come from that talk and the Agent Instruction Protocol work behind it. Anything
+  wrong in my summary of it is my mistake, not his.
 - Built with Claude Code, which also did the compiling.
 
 ## License
