@@ -11,8 +11,8 @@ window.SKILLGRAPH = {
    "purpose": "Drive every open pull request across the portfolio to merged or closed.",
    "sha256": "255445267ed480ed1ad02ae01fe4ee630d15088094205efb9e949db85ea7f52a",
    "notes": [
-    "Merging without asking is stated as the intent. The build gate is the only control between triage and a merge.",
-    "Closing a pull request has no gate at all. It follows directly from the model's own verdict."
+    "Closing a pull request has no gate at all. It follows directly from the model's own verdict.",
+    "Merging without asking is stated as the intent. The build gate is the only control between triage and a merge."
    ]
   },
   {
@@ -37,9 +37,9 @@ window.SKILLGRAPH = {
    "name": "memory-check",
    "source": "commands/memory-check.md",
    "purpose": "Lint the memory store, fix what is malformed, and spot-check what it claims.",
-   "sha256": "8da4fcbdfe7b4e9a79c1763b673f22dd7ebb8f27825f194dbc07148a3cd30b45",
+   "sha256": "1e6faa119d21c718e9f96b2c274480c6bbc9e4856d86d836a0a6f68ef74963a0",
    "notes": [
-    "Memories are deleted on the model's own spot-check. No human sees the list before the files go."
+    "Until 2026-10-13 memories were deleted on the model's own spot-check. The prose now lists them for approval before any file goes."
    ]
   },
   {
@@ -55,11 +55,11 @@ window.SKILLGRAPH = {
    "name": "plan-project",
    "source": "commands/plan-project.md",
    "purpose": "Turn a feature or scope into ordered GitHub issues, without writing code.",
-   "sha256": "27e5da5ebb4839439d768b64c718b1c36e7eeecd1a20757eb174e7ce4f59ff8c",
+   "sha256": "87403b6b46f2941a01034f98149537f8d5d7c1e9d1c2cd86e569229606a9ae1b",
    "notes": [
-    "The issues are created straight from the draft. No step shows the plan to a human first.",
-    "The prose pins the model as claude-opus-4-8 by name.",
-    "The repo is read from the local clone with no git fetch."
+    "Until 2026-10-13 the issues were created straight from the draft. The prose now shows the plan and stops for approval first.",
+    "The repo is read from the local clone with no git fetch.",
+    "The prose pins the model as claude-opus-4-8 by name."
    ]
   },
   {
@@ -510,17 +510,35 @@ window.SKILLGRAPH = {
   },
   {
    "skill": "memory-check",
+   "key": "memory-check/approve-deletions",
+   "id": "approve-deletions",
+   "order": 5,
+   "kind": "approval",
+   "does": "List each memory file proposed for deletion, with a reason, and wait for a human to approve.",
+   "tool": "none",
+   "effect": "read",
+   "conditional": false,
+   "destructive": false,
+   "quote": "own verdict: list each file you want to delete with a one-line reason, and delete",
+   "line": 32,
+   "outputs": [
+    "approved_deletions: list"
+   ],
+   "uses": null
+  },
+  {
+   "skill": "memory-check",
    "key": "memory-check/delete-wrong",
    "id": "delete-wrong",
-   "order": 5,
+   "order": 6,
    "kind": "script",
-   "does": "Delete memories that turned out to be wrong.",
+   "does": "Delete the memory files the human approved.",
    "tool": "fs",
    "effect": "local",
    "conditional": false,
    "destructive": true,
-   "quote": "file:line citation. Memory is a point-in-time observation. Delete what turned out to be wrong",
-   "line": 30,
+   "quote": "only the ones he approves. Edits that fix shape or dates need no approval.",
+   "line": 33,
    "outputs": [
     "deleted: list"
    ],
@@ -530,7 +548,7 @@ window.SKILLGRAPH = {
    "skill": "memory-check",
    "key": "memory-check/report",
    "id": "report",
-   "order": 6,
+   "order": 7,
    "kind": "report",
    "does": "Report what changed and what was deliberately left.",
    "tool": "none",
@@ -538,7 +556,7 @@ window.SKILLGRAPH = {
    "conditional": false,
    "destructive": false,
    "quote": "Report what you changed and what you deliberately left. If the store is clean, say so in one",
-   "line": 33,
+   "line": 35,
    "outputs": [],
    "uses": null
   },
@@ -668,17 +686,35 @@ window.SKILLGRAPH = {
   },
   {
    "skill": "plan-project",
+   "key": "plan-project/approve-plan",
+   "id": "approve-plan",
+   "order": 5,
+   "kind": "approval",
+   "does": "Show the plan as a table and wait for a human to approve it.",
+   "tool": "none",
+   "effect": "read",
+   "conditional": false,
+   "destructive": false,
+   "quote": "Show the plan as a table (title | milestone | labels) and STOP. Create nothing",
+   "line": 33,
+   "outputs": [
+    "approved_plan: list"
+   ],
+   "uses": null
+  },
+  {
+   "skill": "plan-project",
    "key": "plan-project/create-issues",
    "id": "create-issues",
-   "order": 5,
+   "order": 6,
    "kind": "script",
-   "does": "Create the issues on GitHub.",
+   "does": "Create the approved issues on GitHub.",
    "tool": "gh",
    "effect": "remote",
    "conditional": false,
    "destructive": false,
-   "quote": "Create the issues on GitHub:",
-   "line": 33,
+   "quote": "After approval, create the approved issues on GitHub:",
+   "line": 36,
    "outputs": [
     "issue_numbers: list"
    ],
@@ -688,7 +724,7 @@ window.SKILLGRAPH = {
    "skill": "plan-project",
    "key": "plan-project/report",
    "id": "report",
-   "order": 6,
+   "order": 7,
    "kind": "report",
    "does": "Report a table of the issues created.",
    "tool": "none",
@@ -696,7 +732,7 @@ window.SKILLGRAPH = {
    "conditional": false,
    "destructive": false,
    "quote": "Report a table: issue number | title | milestone | labels",
-   "line": 43,
+   "line": 46,
    "outputs": [],
    "uses": null
   },
@@ -1038,17 +1074,17 @@ window.SKILLGRAPH = {
    "type": "list"
   },
   {
-   "source": "babysit-prs/triage",
-   "target": "babysit-prs/merge",
-   "rel": "INPUTS_TO",
-   "name": "verdicts",
-   "type": "list"
-  },
-  {
    "source": "babysit-prs/build-in-worktree",
    "target": "babysit-prs/merge",
    "rel": "INPUTS_TO",
    "name": "build_results",
+   "type": "list"
+  },
+  {
+   "source": "babysit-prs/triage",
+   "target": "babysit-prs/merge",
+   "rel": "INPUTS_TO",
+   "name": "verdicts",
    "type": "list"
   },
   {
@@ -1066,10 +1102,10 @@ window.SKILLGRAPH = {
    "type": "list"
   },
   {
-   "source": "babysit-prs/merge",
+   "source": "babysit-prs/close",
    "target": "babysit-prs/report",
    "rel": "INPUTS_TO",
-   "name": "merged",
+   "name": "closed",
    "type": "list"
   },
   {
@@ -1080,10 +1116,10 @@ window.SKILLGRAPH = {
    "type": "list"
   },
   {
-   "source": "babysit-prs/close",
+   "source": "babysit-prs/merge",
    "target": "babysit-prs/report",
    "rel": "INPUTS_TO",
-   "name": "closed",
+   "name": "merged",
    "type": "list"
   },
   {
@@ -1104,15 +1140,15 @@ window.SKILLGRAPH = {
    "source": "eval/resolve-repo",
    "target": "eval/worktree",
    "rel": "INPUTS_TO",
-   "name": "pr_number",
-   "type": "int"
+   "name": "repo",
+   "type": "string"
   },
   {
    "source": "eval/resolve-repo",
    "target": "eval/worktree",
    "rel": "INPUTS_TO",
-   "name": "repo",
-   "type": "string"
+   "name": "pr_number",
+   "type": "int"
   },
   {
    "source": "eval/worktree",
@@ -1143,11 +1179,18 @@ window.SKILLGRAPH = {
    "type": "list"
   },
   {
-   "source": "eval/resolve-repo",
+   "source": "eval/run-eval",
    "target": "eval/paste-into-pr",
    "rel": "INPUTS_TO",
-   "name": "pr_number",
-   "type": "int"
+   "name": "scorecards",
+   "type": "list"
+  },
+  {
+   "source": "eval/judge-vs-baseline",
+   "target": "eval/paste-into-pr",
+   "rel": "INPUTS_TO",
+   "name": "verdict",
+   "type": "string"
   },
   {
    "source": "eval/resolve-repo",
@@ -1157,31 +1200,31 @@ window.SKILLGRAPH = {
    "type": "string"
   },
   {
-   "source": "eval/judge-vs-baseline",
+   "source": "eval/resolve-repo",
    "target": "eval/paste-into-pr",
+   "rel": "INPUTS_TO",
+   "name": "pr_number",
+   "type": "int"
+  },
+  {
+   "source": "eval/judge-vs-baseline",
+   "target": "eval/report",
    "rel": "INPUTS_TO",
    "name": "verdict",
    "type": "string"
   },
   {
    "source": "eval/run-eval",
-   "target": "eval/paste-into-pr",
+   "target": "eval/report",
    "rel": "INPUTS_TO",
    "name": "scorecards",
    "type": "list"
   },
   {
-   "source": "eval/judge-vs-baseline",
-   "target": "eval/report",
+   "source": "log-session/review-session",
+   "target": "log-session/write-capture",
    "rel": "INPUTS_TO",
-   "name": "verdict",
-   "type": "string"
-  },
-  {
-   "source": "eval/run-eval",
-   "target": "eval/report",
-   "rel": "INPUTS_TO",
-   "name": "scorecards",
+   "name": "decisions",
    "type": "list"
   },
   {
@@ -1190,13 +1233,6 @@ window.SKILLGRAPH = {
    "rel": "INPUTS_TO",
    "name": "template",
    "type": "string"
-  },
-  {
-   "source": "log-session/review-session",
-   "target": "log-session/write-capture",
-   "rel": "INPUTS_TO",
-   "name": "decisions",
-   "type": "list"
   },
   {
    "source": "log-session/write-capture",
@@ -1235,9 +1271,23 @@ window.SKILLGRAPH = {
   },
   {
    "source": "memory-check/spot-check",
-   "target": "memory-check/delete-wrong",
+   "target": "memory-check/approve-deletions",
    "rel": "INPUTS_TO",
    "name": "wrong",
+   "type": "list"
+  },
+  {
+   "source": "memory-check/approve-deletions",
+   "target": "memory-check/delete-wrong",
+   "rel": "INPUTS_TO",
+   "name": "approved_deletions",
+   "type": "list"
+  },
+  {
+   "source": "memory-check/fix-errors",
+   "target": "memory-check/report",
+   "rel": "INPUTS_TO",
+   "name": "fixed",
    "type": "list"
   },
   {
@@ -1252,13 +1302,6 @@ window.SKILLGRAPH = {
    "target": "memory-check/report",
    "rel": "INPUTS_TO",
    "name": "warning_changes",
-   "type": "list"
-  },
-  {
-   "source": "memory-check/fix-errors",
-   "target": "memory-check/report",
-   "rel": "INPUTS_TO",
-   "name": "fixed",
    "type": "list"
   },
   {
@@ -1319,9 +1362,16 @@ window.SKILLGRAPH = {
   },
   {
    "source": "plan-project/draft-plan",
-   "target": "plan-project/create-issues",
+   "target": "plan-project/approve-plan",
    "rel": "INPUTS_TO",
    "name": "plan",
+   "type": "list"
+  },
+  {
+   "source": "plan-project/approve-plan",
+   "target": "plan-project/create-issues",
+   "rel": "INPUTS_TO",
+   "name": "approved_plan",
    "type": "list"
   },
   {
@@ -1339,10 +1389,10 @@ window.SKILLGRAPH = {
    "type": "list"
   },
   {
-   "source": "plan-project/draft-plan",
+   "source": "plan-project/approve-plan",
    "target": "plan-project/report",
    "rel": "INPUTS_TO",
-   "name": "plan",
+   "name": "approved_plan",
    "type": "list"
   },
   {
@@ -1367,18 +1417,18 @@ window.SKILLGRAPH = {
    "type": "string"
   },
   {
-   "source": "promote-lesson/draft",
-   "target": "promote-lesson/save",
-   "rel": "INPUTS_TO",
-   "name": "draft",
-   "type": "string"
-  },
-  {
    "source": "promote-lesson/approve",
    "target": "promote-lesson/save",
    "rel": "INPUTS_TO",
    "name": "approved",
    "type": "bool"
+  },
+  {
+   "source": "promote-lesson/draft",
+   "target": "promote-lesson/save",
+   "rel": "INPUTS_TO",
+   "name": "draft",
+   "type": "string"
   },
   {
    "source": "work-issue/input:arguments",
@@ -1416,6 +1466,13 @@ window.SKILLGRAPH = {
    "type": "string"
   },
   {
+   "source": "work-issue/locate-clone",
+   "target": "work-issue/create-branch",
+   "rel": "INPUTS_TO",
+   "name": "local_dir",
+   "type": "path"
+  },
+  {
    "source": "work-issue/resolve-repo",
    "target": "work-issue/create-branch",
    "rel": "INPUTS_TO",
@@ -1428,13 +1485,6 @@ window.SKILLGRAPH = {
    "rel": "INPUTS_TO",
    "name": "issue",
    "type": "object"
-  },
-  {
-   "source": "work-issue/locate-clone",
-   "target": "work-issue/create-branch",
-   "rel": "INPUTS_TO",
-   "name": "local_dir",
-   "type": "path"
   },
   {
    "source": "work-issue/clarify-scope",
@@ -1479,13 +1529,6 @@ window.SKILLGRAPH = {
    "type": "int"
   },
   {
-   "source": "work-issue/implement",
-   "target": "work-issue/commit",
-   "rel": "INPUTS_TO",
-   "name": "diff",
-   "type": "object"
-  },
-  {
    "source": "work-issue/build-gate",
    "target": "work-issue/commit",
    "rel": "INPUTS_TO",
@@ -1493,10 +1536,17 @@ window.SKILLGRAPH = {
    "type": "bool"
   },
   {
-   "source": "work-issue/create-branch",
+   "source": "work-issue/implement",
+   "target": "work-issue/commit",
+   "rel": "INPUTS_TO",
+   "name": "diff",
+   "type": "object"
+  },
+  {
+   "source": "work-issue/resolve-repo",
    "target": "work-issue/open-pr",
    "rel": "INPUTS_TO",
-   "name": "branch",
+   "name": "repo",
    "type": "string"
   },
   {
@@ -1514,10 +1564,17 @@ window.SKILLGRAPH = {
    "type": "string"
   },
   {
-   "source": "work-issue/resolve-repo",
+   "source": "work-issue/create-branch",
    "target": "work-issue/open-pr",
    "rel": "INPUTS_TO",
-   "name": "repo",
+   "name": "branch",
+   "type": "string"
+  },
+  {
+   "source": "work-issue/open-pr",
+   "target": "work-issue/report",
+   "rel": "INPUTS_TO",
+   "name": "pr_url",
    "type": "string"
   },
   {
@@ -1526,13 +1583,6 @@ window.SKILLGRAPH = {
    "rel": "INPUTS_TO",
    "name": "diff",
    "type": "object"
-  },
-  {
-   "source": "work-issue/open-pr",
-   "target": "work-issue/report",
-   "rel": "INPUTS_TO",
-   "name": "pr_url",
-   "type": "string"
   }
  ],
  "queries": [
@@ -1545,12 +1595,6 @@ window.SKILLGRAPH = {
      "skill": "babysit-prs",
      "step": "close",
      "does": "Close superseded and unwanted pull requests with a one-line reason.",
-     "gates_before": []
-    },
-    {
-     "skill": "plan-project",
-     "step": "create-issues",
-     "does": "Create the issues on GitHub.",
      "gates_before": []
     },
     {
@@ -1597,12 +1641,6 @@ window.SKILLGRAPH = {
      "judgment": "triage",
      "value": "verdicts",
      "remote_step": "merge"
-    },
-    {
-     "skill": "plan-project",
-     "judgment": "draft-plan",
-     "value": "plan",
-     "remote_step": "create-issues"
     }
    ]
   },
@@ -1615,9 +1653,9 @@ window.SKILLGRAPH = {
      "subprocedure": "resolve-repo",
      "used_by": 3,
      "skills": [
+      "eval",
       "plan-project",
-      "work-issue",
-      "eval"
+      "work-issue"
      ],
      "rule": "Work out which GitHub repo the command is about, from gh or from the arguments."
     },
@@ -1625,8 +1663,8 @@ window.SKILLGRAPH = {
      "subprocedure": "capture-template",
      "used_by": 2,
      "skills": [
-      "new-capture",
-      "log-session"
+      "log-session",
+      "new-capture"
      ],
      "rule": "Start a capture entry from publishing/templates/capture-template.md."
     },
@@ -1668,8 +1706,8 @@ window.SKILLGRAPH = {
      "skill": "eval",
      "repo_steps": [
       "paste-into-pr",
-      "worktree",
-      "resolve-repo"
+      "resolve-repo",
+      "worktree"
      ]
     },
     {
@@ -1682,12 +1720,12 @@ window.SKILLGRAPH = {
     {
      "skill": "work-issue",
      "repo_steps": [
-      "resolve-repo",
-      "create-branch",
       "commit",
+      "open-pr",
+      "resolve-repo",
       "read-issue",
       "locate-clone",
-      "open-pr"
+      "create-branch"
      ]
     }
    ]
@@ -1710,13 +1748,7 @@ window.SKILLGRAPH = {
    "id": "06-destructive-without-approval",
    "question": "Which steps delete something with no human approval before them?",
    "cypher": "MATCH (s:SkillGraph:Command)-[:HAS_STEP]->(d:SkillGraph:Step {destructive: true})\nWHERE NOT EXISTS {\n  MATCH (a:SkillGraph:Step {kind: \"approval\", conditional: false})-[:INPUTS_TO|THEN*]->(d)\n}\nRETURN s.name AS skill, d.id AS step, d.does AS does\nORDER BY skill",
-   "rows": [
-    {
-     "skill": "memory-check",
-     "step": "delete-wrong",
-     "does": "Delete memories that turned out to be wrong."
-    }
-   ]
+   "rows": []
   },
   {
    "id": "07-could-run-in-parallel",
