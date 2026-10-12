@@ -30,7 +30,10 @@ Produce a structured GitHub issue plan. Do NOT write any code.
    - Issues ordered by dependency (earlier issues unblock later ones)
    - Each issue: title, 2-sentence context, acceptance criteria checklist, labels, milestone
 
-4. Create the issues on GitHub:
+4. Show the plan as a table (title | milestone | labels) and STOP. Create nothing
+   until he approves it. He may strike, reword or reorder issues first.
+
+5. After approval, create the approved issues on GitHub:
    ```
    gh issue create \
      --repo $REPO \
@@ -40,7 +43,7 @@ Produce a structured GitHub issue plan. Do NOT write any code.
      --milestone "M2: CRM"
    ```
 
-5. Report a table: issue number | title | milestone | labels
+6. Report a table: issue number | title | milestone | labels
 
 ### Issue writing rules
 - Title: verb phrase, present tense ("Add CSV import", not "CSV import feature")

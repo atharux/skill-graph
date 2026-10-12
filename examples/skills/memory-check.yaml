@@ -39,16 +39,24 @@ steps:
     in: [fixed, warning_changes]
     out: [{name: wrong, type: list}]
     quote: 'The linter checks shape, not truth. Spot-check anything time-sensitive against reality before'
+  - id: approve-deletions
+    kind: approval
+    does: List each memory file proposed for deletion, with a reason, and wait for a human to approve.
+    tool: none
+    effect: read
+    in: [wrong]
+    out: [{name: approved_deletions, type: list}]
+    quote: 'own verdict: list each file you want to delete with a one-line reason, and delete'
   - id: delete-wrong
     kind: script
     destructive: true
-    does: Delete memories that turned out to be wrong.
+    does: Delete the memory files the human approved.
     tool: fs
     effect: local
     touches: [{path: 'auto-memory/', mode: write}]
-    in: [wrong]
+    in: [approved_deletions]
     out: [{name: deleted, type: list}]
-    quote: 'file:line citation. Memory is a point-in-time observation. Delete what turned out to be wrong'
+    quote: 'only the ones he approves. Edits that fix shape or dates need no approval.'
   - id: report
     kind: report
     does: Report what changed and what was deliberately left.
@@ -58,4 +66,4 @@ steps:
     out: []
     quote: 'Report what you changed and what you deliberately left. If the store is clean, say so in one'
 notes:
-  - Memories are deleted on the model's own spot-check. No human sees the list before the files go.
+  - Until 2026-10-13 memories were deleted on the model's own spot-check. The prose now lists them for approval before any file goes.

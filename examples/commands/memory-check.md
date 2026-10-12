@@ -27,8 +27,10 @@ since the reason is what makes the guidance transferable.
 
 The linter checks shape, not truth. Spot-check anything time-sensitive against reality before
 trusting it — `git fetch` before believing a repo claim, read the file before believing a
-file:line citation. Memory is a point-in-time observation. Delete what turned out to be wrong
-rather than layering a correction on top.
+file:line citation. Memory is a point-in-time observation. Remove what turned out to be wrong
+rather than layering a correction on top, but never delete a memory file on your
+own verdict: list each file you want to delete with a one-line reason, and delete
+only the ones he approves. Edits that fix shape or dates need no approval.
 
 Report what you changed and what you deliberately left. If the store is clean, say so in one
 line and stop.
