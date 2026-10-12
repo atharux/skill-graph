@@ -30,19 +30,25 @@ all 18 and asked the graph one question:
 
 > Which steps change something outside my machine, with no human approval before them?
 
-**Six.** Two of them have no automatic check either:
+**Six.** Two of them had no automatic check either:
 
 - `/babysit-prs` can **close a pull request** straight from the model's own verdict.
-- `/plan-project` can **create GitHub issues** straight from the model's own draft.
+- `/plan-project` could **create GitHub issues** straight from the model's own draft.
 
-A second question found that `/memory-check` can **delete the agent's own memory
+A second question found that `/memory-check` could **delete the agent's own memory
 files** with nobody approving the list.
 
 I wrote all of these instructions and did not know any of this until I asked.
 
+**What I changed (13 October 2026).** I added an approval step to `/plan-project` and
+to `/memory-check`, then recompiled. The same question now returns five steps, and the
+question about deletions returns none. I left `/babysit-prs` as it is: closing stale
+pull requests without asking is what that command is for.
+
 Eight of the 18 commands are published in [`examples/`](examples/), lightly edited
 (local paths and private repository names replaced). On those eight the same query
-returns **five** steps. The other ten contain client details and stay private.
+now returns **four** steps (five before the change). The other ten contain client
+details and stay private.
 
 ---
 
